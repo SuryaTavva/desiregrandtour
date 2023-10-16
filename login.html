@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Welcome to Desire Grand Tournament</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600&family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="loginpage.css">
+</head>
+<body>
+  <div id="login-page">
+    <div id="options">
+        <label for="registration-option">Register</label>
+        <input type="radio" id="registration-option" name="login-option" value="register" checked>
+        
+        <label for="login-option">Log In</label>
+        <input type="radio" id="login-option" name="login-option" value="login">
+    </div>
+
+    <div id="registration" style="display: block;">
+        <h1>Desire Grand Tournament - Registration</h1>
+        <input type="text" id="reg-username" name="username" placeholder="Username"/><br><br>
+        <input type="text" id="reg-email" name="email" placeholder="Email"/> <br><br>
+        <input type="password" id="reg-password" name="password" placeholder="Password"/><br><br>
+
+        <input type="submit" id="SignUp" name="Signup_submit" value="Register and Join the Gaming World"/>
+    </div>
+
+    <div id="login" style="display: none;">
+        <h1>Desire Grand Tournament - Login</h1>
+        <input type="text" id="login-email" name="email" placeholder="Email"/> <br><br>
+        <input type="password" id="login-password" name="password" placeholder="Password"/><br><br>
+
+        <input type="submit" id="SignIn" name="Signin_submit" value="Log In"/>
+    </div>
+</div>
+<script type="module">
+    import db from './firebase';
+
+   document.addEventListener("DOMContentLoaded", function () {
+    const SignUp = document.getElementById('SignUp');
+    const SignIn = document.getElementById('SignIn');
+    const registrationOption = document.getElementById('registration-option');
+    const loginOption = document.getElementById('login-option');
+    const registrationSection = document.getElementById('registration');
+    const loginSection = document.getElementById('login');
+
+    registrationOption.addEventListener('change', () => {
+        registrationSection.style.display = 'block';
+        loginSection.style.display = 'none';
+    });
+
+    loginOption.addEventListener('change', () => {
+        registrationSection.style.display = 'none';
+        loginSection.style.display = 'block';
+    });
+
+    SignUp.addEventListener('click', async (e) => {
+        e.preventDefault(); // Prevent the default form submission
+
+        var username = document.getElementById('reg-username').value;
+        var email = document.getElementById('reg-email').value;
+        var password = document.getElementById('reg-password').value;
+
+        // Check if the username is unique
+        const usernameExists = await isUsernameExists(username);
+        if (usernameExists) {
+            alert('Username already exists. Please choose a different one.');
+            return;
+        }
+
+        // Check if the email is unique
+        const emailExists = await isEmailExists(email);
+        if (emailExists) {
+            alert('Email already exists. Please use a different one.');
+            return;
+        }
+
+        // If both username and email are unique, proceed with registration
+        try {
+            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            await set(ref(database, 'users/' + user.uid), {
+                username: username,
+                email: email
+            });
+
+            // Save email to localStorage
+            localStorage.setItem('email', email);
+            // Save username to localStorage (optional)
+            localStorage.setItem('username', username);
+
+            alert('User created! Welcome to the gaming world');
+
+            // Redirect to index page
+            window.location.href = "index.html";
+        } catch (error) {
+            const errorMessage = error.message;
+            alert(errorMessage);
+        }
+    });
+
+    SignIn.addEventListener('click', async (e) => {
+        e.preventDefault(); // Prevent the default form submission
+
+        var email = document.getElementById('login-email').value;
+        var password = document.getElementById('login-password').value;
+
+        try {
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const user = userCredential.user;
+
+            // Retrieve email from database or wherever you store it
+            const emailRef = ref(database, 'users/' + user.uid + '/email');
+            const snapshot = await get(emailRef);
+            const userEmail = snapshot.val();
+
+            // Save email to localStorage
+            localStorage.setItem('email', userEmail);
+
+            alert('Welcome back, ' + userEmail);
+
+            // Redirect to index page
+            window.location.href = "index.html";
+        } catch (error) {
+            const errorMessage = error.message;
+            alert(errorMessage);
+        }
+    });
+    async function isUsernameExists(username) {
+                const usersRef = ref(database, 'users');
+                const usernameQuery = query(usersRef, equalTo(username, 'username'));
+                const usernameSnapshot = await get(usernameQuery);
+                return usernameSnapshot.exists();
+            }
+
+            async function isEmailExists(email) {
+                const usersRef = ref(database, 'users');
+                const emailQuery = query(usersRef, equalTo(email, 'email'));
+                const emailSnapshot = await get(emailQuery);
+                return emailSnapshot.exists();
+            }
+});
+</script>
+</body>
+</html>

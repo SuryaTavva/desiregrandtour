@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tournament Page</title>
+    <!-- Include Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.4.0/firebase-firestore.js"></script>
+    <!-- Include Ionicons -->
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+</head>
+<body>
+
+    <header>
+        <h1>Tournament Registration</h1>
+        <button id="logoutBtn" class="btn-sign_out" style="display: none;">
+            <div class="icon-box">
+                <ion-icon name="log-out-outline"></ion-icon>
+            </div>
+            <span>Logout</span>
+        </button>
+    </header>
+
+    <main>
+        <form id="tournamentForm">
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required>
+
+            <label for="tournamentDate">Tournament Date:</label>
+            <input type="date" id="tournamentDate" name="tournamentDate" required>
+
+            <label for="mode">Mode:</label>
+            <select id="mode" name="mode" required>
+                <option value="solo">Solo</option>
+                <option value="duos">Duos</option>
+                <option value="squad">Squad</option>
+            </select>
+
+            <!-- Additional fields for duos or squad -->
+            <div id="additionalUsernames" style="display: none;">
+                <!-- Dynamically generated input fields based on mode -->
+            </div>
+
+            <button type="submit">Register</button>
+        </form>
+    </main>
+
+    <script type="module">
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf3VgZl7vhlIlNIswDs3fxIjpF30p2TKA",
+        authDomain: "tournament-user-login-page.firebaseapp.com",
+        databaseURL: "https://tournament-user-login-page-default-rtdb.firebaseio.com",
+        projectId: "tournament-user-login-page",
+        storageBucket: "tournament-user-login-page.appspot.com",
+        messagingSenderId: "644261178840",
+        appId: "1:644261178840:web:c2a7cbaa6fb35a3a4dd6ad"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // Check if the user is already logged in
+        const auth = firebase.auth();
+        auth.onAuthStateChanged(user => {
+            const logoutBtn = document.getElementById('logoutBtn');
+            if (user) {
+                logoutBtn.style.display = 'block';
+            } else {
+                logoutBtn.style.display = 'none';
+                window.location.href = 'login.html'; // Redirect to login page if not logged in
+            }
+        });
+
+        // Tournament form submission
+        const tournamentForm = document.getElementById('tournamentForm');
+        tournamentForm.addEventListener('submit', function (event) {
+            event.preventDefault();
+            registerTournament();
+        });
+
+        // Function to register a tournament
+        const registerTournament = async () => {
+            const username = document.getElementById('username').value;
+            const tournamentDate = document.getElementById('tournamentDate').value;
+            const mode = document.getElementById('mode').value;
+
+            // Get additional usernames for duos or squad
+            const additionalUsernames = getAdditionalUsernames(mode);
+
+            try {
+                // Add the tournament data to Firebase
+                await db.collection('tournaments').add({
+                    username,
+                    tournamentDate,
+                    mode,
+                    additionalUsernames,
+                });
+
+                alert('Tournament registered successfully!');
+                tournamentForm.reset(); // Clear the form after registration
+            } catch (error) {
+                console.error('Error registering tournament: ', error);
+            }
+        };
+
+        // Update additional usernames field based on selected mode
+        const modeSelect = document.getElementById('mode');
+        const additionalUsernamesContainer = document.getElementById('additionalUsernames');
+        modeSelect.addEventListener('change', updateAdditionalUsernames);
+
+        function updateAdditionalUsernames() {
+            const mode = modeSelect.value;
+            additionalUsernamesContainer.innerHTML = '';
+
+            if (mode === 'duos' || mode === 'squad') {
+                const numPlayers = mode === 'duos' ? 2 : 4; // Change to 4 for squad
+                for (let i = 2; i <= numPlayers; i++) {
+                    const label = document.createElement('label');
+                    label.setAttribute('for', `username${i}`);
+                    label.textContent = `Username ${i}:`;
+                    const input = document.createElement('input');
+                    input.setAttribute('type', 'text');
+                    input.setAttribute('id', `username${i}`);
+                    input.setAttribute('name', `username${i}`);
+                    input.setAttribute('required', 'true');
+                    additionalUsernamesContainer.appendChild(label);
+                    additionalUsernamesContainer.appendChild(input);
+                }
+                additionalUsernamesContainer.style.display = 'block';
+            } else {
+                additionalUsernamesContainer.style.display = 'none';
+            }
+        }
+
+        // Function to get additional usernames based on selected mode
+        function getAdditionalUsernames(mode) {
+            const additionalUsernames = [];
+            if (mode === 'duos' || mode === 'squad') {
+                const numPlayers = mode === 'duos' ? 2 : 4; // Change to 4 for squad
+                for (let i = 2; i <= numPlayers; i++) {
+                    const input = document.getElementById(`username${i}`);
+                    additionalUsernames.push(input.value);
+                }
+            }
+            return additionalUsernames;
+        }
+    </script>
+</body>
+</html>
